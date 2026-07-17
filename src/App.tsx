@@ -13,7 +13,7 @@ function parseHash() {
 
 function Router() {
   const [path, setPath] = useState(parseHash());
-  const { session, loading } = useAuth();
+  const { session, profile, loading } = useAuth();
 
   useEffect(() => {
     const onHash = () => setPath(parseHash());
@@ -32,14 +32,14 @@ function Router() {
   // Auth routes
   if (path === '/signin') {
     if (session) {
-      window.location.hash = '/admin';
+      window.location.hash = profile?.role === 'admin' ? '/admin' : '/dashboard';
       return null;
     }
     return <SignIn />;
   }
   if (path === '/signup') {
     if (session) {
-      window.location.hash = '/admin';
+      window.location.hash = '/dashboard';
       return null;
     }
     return <SignUp />;
@@ -47,11 +47,17 @@ function Router() {
 
   // Protected routes
   if (path === '/dashboard' || path.startsWith('/dashboard')) {
+    if (!session) {
+      window.location.hash = '/signin';
+      return null;
+    }
     return <Dashboard />;
   }
-  
-  // Güvenlik engeli kaldırılmış doğrudan admin yönlendirmesi
   if (path === '/admin' || path.startsWith('/admin')) {
+    if (!session || profile?.role !== 'admin') {
+      window.location.hash = '/dashboard';
+      return null;
+    }
     return <Admin />;
   }
 
