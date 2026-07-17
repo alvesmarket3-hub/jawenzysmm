@@ -42,26 +42,110 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
-    if (!profile) return;
-    const [svc, ord, trx, tck, keys] = await Promise.all([
-      supabase.from('services').select('*').eq('is_active', true).order('platform', { ascending: true }),
-      supabase.from('orders').select('*, service:services(*)').eq('user_id', profile.id).order('created_at', { ascending: false }).limit(50),
-      supabase.from('transactions').select('*').eq('user_id', profile.id).order('created_at', { ascending: false }).limit(20),
-      supabase.from('tickets').select('*').eq('user_id', profile.id).order('created_at', { ascending: false }),
-      supabase.from('api_keys').select('*').eq('user_id', profile.id).order('created_at', { ascending: false }),
-    ]);
-    setServices((svc.data as Service[]) || []);
-    setOrders((ord.data as Order[]) || []);
-    setTransactions((trx.data as Transaction[]) || []);
-    setTickets((tck.data as Ticket[]) || []);
-    setApiKeys((keys.data as ApiKey[]) || []);
+  if (!profile) {
     setLoading(false);
-  };
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    // SERVICES
+    try {
+      const { data, error } = await supabase
+        .from('services')
+        .select('*')
+        .eq('is_active', true)
+        .order('platform', { ascending: true });
+
+      if (error) throw error;
+
+      setServices((data as Service[]) ?? []);
+    } catch (err) {
+      console.error('services', err);
+      setServices([]);
+    }
+
+    // ORDERS
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, service:services(*)')
+        .eq('user_id', profile.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      setOrders((data as Order[]) ?? []);
+    } catch (err) {
+      console.error('orders', err);
+      setOrders([]);
+    }
+
+    // TRANSACTIONS
+    try {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', profile.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      setTransactions((data as Transaction[]) ?? []);
+    } catch (err) {
+      console.error('transactions', err);
+      setTransactions([]);
+    }
+
+    // TICKETS
+    try {
+      const { data, error } = await supabase
+        .from('tickets')
+        .select('*')
+        .eq('user_id', profile.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setTickets((data as Ticket[]) ?? []);
+    } catch (err) {
+      console.error('tickets', err);
+      setTickets([]);
+    }
+
+    // API KEYS
+    try {
+      const { data, error } = await supabase
+        .from('api_keys')
+        .select('*')
+        .eq('user_id', profile.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setApiKeys((data as ApiKey[]) ?? []);
+    } catch (err) {
+      console.error('api_keys', err);
+      setApiKeys([]);
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile?.id]);
+  if (!profile?.id) {
+    setLoading(false);
+    return;
+  }
+
+  loadData();
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [profile?.id]);
 
   const navItems: { id: View; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
